@@ -36,7 +36,7 @@ This system uses **ArUco markers** instead of QR codes for superior tracking per
 
 ### Raspberry Pi Files:
 1. **`aruco_generator.py`** - Generate and print ArUco markers
-2. **`foundry_aruco_tracker.py`** - Main tracking script
+2. **`aruco_tracker.py`** - Main tracking script
 3. **`aruco_preview.py`** - Camera preview with ArUco overlays
 4. **`network_test.py`** - Network connectivity test script
 
@@ -177,7 +177,7 @@ chmod +x launch_preview.sh
 
 **For Remote Foundry (most common):**
 ```bash
-python3 foundry_aruco_tracker.py \
+python3 aruco_tracker.py \
   --foundry-url "http://192.168.1.50:30000" \
   --scene-id "abc123def456" \
   --surface-width 1000 \
@@ -386,7 +386,7 @@ echo "Network test complete! If all tests pass, you're ready for ArUco tracking.
 
 **Python Command:**
 ```bash
-python3 foundry_aruco_tracker.py \
+python3 aruco_tracker.py \
   --foundry-url "http://192.168.1.50:30000" \
   --scene-id "your-scene-id-from-foundry" \
   --websocket-port 30001
