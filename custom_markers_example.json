@@ -1,0 +1,77 @@
+[
+  {
+    "id": 62,
+    "name": "Ancient_Lich",
+    "description": "Ultimate boss encounter - Undead sorcerer king"
+  },
+  {
+    "id": 63,
+    "name": "Epic_Artifact",
+    "description": "Legendary item - Artifact of immense power"
+  },
+  {
+    "id": 64,
+    "name": "Siege_Engine",
+    "description": "Large vehicle - Catapult or ballista"
+  },
+  {
+    "id": 65,
+    "name": "Elemental_Boss",
+    "description": "Boss encounter - Fire/Water/Earth/Air elemental"
+  },
+  {
+    "id": 66,
+    "name": "Magic_Circle",
+    "description": "Environmental feature - Summoning or teleport circle"
+  },
+  {
+    "id": 67,
+    "name": "Royal_Guard",
+    "description": "Elite NPC - King's personal guard"
+  },
+  {
+    "id": 68,
+    "name": "Cursed_Item",
+    "description": "Dangerous object - Item with negative effects"
+  },
+  {
+    "id": 69,
+    "name": "Divine_Intervention",
+    "description": "Special event - God or deity manifestation"
+  },
+  {
+    "id": 70,
+    "name": "Time_Portal",
+    "description": "Temporal anomaly - Gateway through time"
+  },
+  {
+    "id": 71,
+    "name": "Planar_Rift",
+    "description": "Dimensional tear - Connection to other planes"
+  },
+  {
+    "id": 72,
+    "name": "War_Banner",
+    "description": "Military marker - Army or faction banner"
+  },
+  {
+    "id": 73,
+    "name": "Weather_Control",
+    "description": "Environmental effect - Storm, fog, or weather"
+  },
+  {
+    "id": 74,
+    "name": "Spy_Contact",
+    "description": "Secret NPC - Underground informant"
+  },
+  {
+    "id": 75,
+    "name": "Monster_Nest",
+    "description": "Spawning point - Creature breeding ground"
+  },
+  {
+    "id": 76,
+    "name": "Faction_Leader",
+    "description": "Important NPC - Guild master or faction head"
+  }
+]

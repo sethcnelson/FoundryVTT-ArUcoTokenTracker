@@ -1,29 +1,34 @@
 #!/usr/bin/env python3
 """
-Foundry VTT QR Code Token Tracker
-=================================
+Foundry VTT ArUco Token Tracker
+==============================
 
-A Python script that uses the Raspberry Pi camera to track QR code tokens
+A Python script that uses the Raspberry Pi camera to track ArUco markers
 and sends real-time position updates to Foundry Virtual Tabletop.
+
+ArUco Marker Schema (Optimized for smaller markers):
+- Corner markers: IDs 0-3 (TL=0, TR=1, BR=2, BL=3)
+- Player markers: IDs 10-25 (16 players maximum)
+- Item markers: IDs 30-61 (32 standard gaming items)
+- Custom markers: IDs 62+ (user-defined tokens)
 
 Requirements:
 - Raspberry Pi with camera module
-- Python packages: picamera2, opencv-python, pyzbar, numpy, websockets, requests
-- Foundry VTT with compatible module (see README)
+- Python packages: picamera2, opencv-python, numpy, websockets, requests
+- Foundry VTT with compatible module
 
 Installation:
 sudo apt update
 sudo apt install python3-opencv python3-numpy
-pip3 install picamera2 pyzbar websockets requests aiohttp
+pip3 install picamera2 websockets requests aiohttp opencv-python numpy
 
 Usage:
-python3 foundry_qr_tracker.py --foundry-url "http://localhost:30000" --scene-id "your-scene-id"
+python3 foundry_aruco_tracker.py --foundry-url "http://192.168.1.50:30000" --scene-id "your-scene-id"
 """
 
 import cv2
 import numpy as np
 from picamera2 import Picamera2
-from pyzbar import pyzbar
 import time
 import json
 import asyncio
@@ -44,14 +49,15 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class QRToken:
-    """Represents a detected QR code token."""
-    id: str
+class ArucoToken:
+    """Represents a detected ArUco marker token."""
+    id: int
     x: float
     y: float
     confidence: float
     last_seen: float
     corners: List[Tuple[int, int]]
+    marker_type: str
     foundry_token_id: Optional[str] = None
 
 
@@ -74,7 +80,7 @@ class FoundryIntegrator:
         self.config = config
         self.session = requests.Session()
         self.websocket = None
-        self.token_mapping = {}  # QR ID -> Foundry Token ID
+        self.token_mapping = {}  # ArUco ID -> Foundry Token ID
         self.connection_active = False
         
         # Set up authentication if API key provided
@@ -107,9 +113,10 @@ class FoundryIntegrator:
             # Send initial handshake with network info
             handshake = {
                 "type": "handshake",
-                "source": "qr_tracker",
+                "source": "aruco_tracker",
                 "scene_id": self.config.scene_id,
                 "tracker_host": "raspberry_pi",
+                "marker_system": "aruco",
                 "timestamp": time.time()
             }
             await self.websocket.send(json.dumps(handshake))
@@ -139,23 +146,24 @@ class FoundryIntegrator:
         
         return foundry_x, foundry_y
     
-    async def update_token_position_ws(self, qr_token: QRToken, surface_width: float, surface_height: float):
+    async def update_token_position_ws(self, aruco_token: ArucoToken, surface_width: float, surface_height: float):
         """Update token position via WebSocket."""
         if not self.connection_active or not self.websocket:
             return False
         
         try:
             foundry_x, foundry_y = self.surface_to_foundry_coords(
-                qr_token.x, qr_token.y, surface_width, surface_height)
+                aruco_token.x, aruco_token.y, surface_width, surface_height)
             
             update_message = {
                 "type": "token_update",
                 "scene_id": self.config.scene_id,
-                "qr_id": qr_token.id,
-                "token_id": qr_token.foundry_token_id,
+                "aruco_id": aruco_token.id,
+                "token_id": aruco_token.foundry_token_id,
                 "x": foundry_x,
                 "y": foundry_y,
-                "confidence": qr_token.confidence
+                "confidence": aruco_token.confidence,
+                "marker_type": aruco_token.marker_type
             }
             
             await self.websocket.send(json.dumps(update_message))
@@ -165,19 +173,19 @@ class FoundryIntegrator:
             logger.error(f"Failed to send WebSocket update: {e}")
             return False
     
-    def update_token_position_http(self, qr_token: QRToken, surface_width: float, surface_height: float):
+    def update_token_position_http(self, aruco_token: ArucoToken, surface_width: float, surface_height: float):
         """Update token position via HTTP API."""
         try:
             foundry_x, foundry_y = self.surface_to_foundry_coords(
-                qr_token.x, qr_token.y, surface_width, surface_height)
+                aruco_token.x, aruco_token.y, surface_width, surface_height)
             
             # Foundry API endpoint for updating tokens
-            url = f"{self.config.base_url}/api/tokens/{qr_token.foundry_token_id}"
+            url = f"{self.config.base_url}/api/tokens/{aruco_token.foundry_token_id}"
             
             payload = {
                 "x": foundry_x,
                 "y": foundry_y,
-                "_id": qr_token.foundry_token_id
+                "_id": aruco_token.foundry_token_id
             }
             
             response = self.session.patch(url, json=payload)
@@ -187,9 +195,25 @@ class FoundryIntegrator:
             logger.error(f"Failed to send HTTP update: {e}")
             return False
     
-    def create_or_find_token(self, qr_id: str) -> Optional[str]:
-        """Create or find a token in Foundry for the QR ID."""
+    def create_or_find_token(self, aruco_id: int, marker_type: str) -> Optional[str]:
+        """Create or find a token in Foundry for the ArUco ID."""
         try:
+            # Generate token name based on marker type and ID
+            if marker_type == 'player':
+                player_num = aruco_id - 10 + 1  # IDs 10-25 become Players 1-16
+                token_name = f"Player_{player_num:02d}"
+            elif marker_type == 'item':
+                # Standard item names
+                item_names = {
+                    30: "Goblin", 31: "Orc", 32: "Skeleton", 33: "Dragon", 34: "Troll", 35: "Wizard_Enemy", 36: "Beast", 37: "Demon",
+                    40: "Treasure_Chest", 41: "Magic_Item", 42: "Gold_Pile", 43: "Potion", 44: "Weapon", 45: "Armor", 46: "Scroll", 47: "Key",
+                    50: "NPC_Merchant", 51: "NPC_Guard", 52: "NPC_Noble", 53: "NPC_Innkeeper", 54: "NPC_Priest",
+                    55: "Door", 56: "Trap", 57: "Fire_Hazard", 58: "Altar", 59: "Portal", 60: "Vehicle", 61: "Objective"
+                }
+                token_name = item_names.get(aruco_id, f"Item_{aruco_id}")
+            else:
+                token_name = f"Custom_{aruco_id}"
+            
             # First, try to find existing token
             url = f"{self.config.base_url}/api/scenes/{self.config.scene_id}/tokens"
             response = self.session.get(url)
@@ -197,40 +221,43 @@ class FoundryIntegrator:
             if response.status_code == 200:
                 tokens = response.json()
                 for token in tokens:
-                    if token.get('name') == f"Player_{qr_id}" or token.get('flags', {}).get('qr_id') == qr_id:
-                        logger.info(f"Found existing token for QR {qr_id}: {token['_id']}")
+                    if (token.get('name') == token_name or 
+                        token.get('flags', {}).get('aruco_id') == aruco_id):
+                        logger.info(f"Found existing token for ArUco {aruco_id}: {token['_id']}")
                         return token['_id']
             
             # Create new token if not found
             create_payload = {
-                "name": f"Player_{qr_id}",
+                "name": token_name,
                 "x": 100,
                 "y": 100,
                 "img": "icons/svg/mystery-man.svg",  # Default token image
                 "width": 1,
                 "height": 1,
                 "flags": {
-                    "qr_id": qr_id,
-                    "qr_tracker": True
+                    "aruco_id": aruco_id,
+                    "aruco_tracker": True,
+                    "marker_type": marker_type
                 }
             }
             
             response = self.session.post(url, json=create_payload)
             if response.status_code == 201:
                 token_data = response.json()
-                logger.info(f"Created new token for QR {qr_id}: {token_data['_id']}")
+                logger.info(f"Created new token for ArUco {aruco_id}: {token_data['_id']}")
                 return token_data['_id']
             
         except Exception as e:
-            logger.error(f"Failed to create/find token for QR {qr_id}: {e}")
+            logger.error(f"Failed to create/find token for ArUco {aruco_id}: {e}")
         
         return None
     
-    def export_to_foundry_module(self, tokens: List[QRToken], surface_width: float, surface_height: float):
+    def export_to_foundry_module(self, tokens: List[ArucoToken], surface_width: float, surface_height: float):
         """Export token data to a file that a Foundry module can read."""
         output_data = {
             "timestamp": time.time(),
             "scene_id": self.config.scene_id,
+            "marker_system": "aruco",
             "tokens": []
         }
         
@@ -239,11 +266,12 @@ class FoundryIntegrator:
                 token.x, token.y, surface_width, surface_height)
             
             token_data = {
-                "qr_id": token.id,
+                "aruco_id": token.id,
                 "foundry_token_id": token.foundry_token_id,
                 "x": foundry_x,
                 "y": foundry_y,
                 "confidence": token.confidence,
+                "marker_type": token.marker_type,
                 "last_seen": token.last_seen
             }
             output_data["tokens"].append(token_data)
@@ -262,39 +290,56 @@ class SurfaceCalibrator:
         self.transform_matrix = None
         self.surface_width = 1000
         self.surface_height = 1000
+        
+        # ArUco corner mapping - optimized schema
+        self.corner_mapping = {
+            0: 'CORNER_TL',  # Top-Left
+            1: 'CORNER_TR',  # Top-Right
+            2: 'CORNER_BR',  # Bottom-Right
+            3: 'CORNER_BL'   # Bottom-Left
+        }
+        
+        # ID ranges for optimized schema (smaller markers)
+        self.player_id_range = (10, 25)  # 16 players
+        self.item_id_range = (30, 61)    # 32 standard items
     
-    def calibrate_surface(self, frame: np.ndarray) -> bool:
+    def calibrate_surface(self, frame: np.ndarray, detector) -> bool:
         """Calibrate the surface by detecting corner markers or manual selection."""
         print("Surface calibration mode:")
-        print("1. Place 4 corner markers (QR codes with 'CORNER_TL', 'CORNER_TR', 'CORNER_BL', 'CORNER_BR')")
+        print("1. Place corner markers (ArUco IDs: 0=TL, 1=TR, 2=BR, 3=BL)")
         print("2. Or press 'c' to manually select corners")
         
-        if self._detect_corner_markers(frame):
+        if self._detect_corner_markers(frame, detector):
             return True
         
         return self._manual_corner_selection(frame)
     
-    def _detect_corner_markers(self, frame: np.ndarray) -> bool:
+    def _detect_corner_markers(self, frame: np.ndarray, detector) -> bool:
         """Detect corner markers automatically."""
-        qr_codes = pyzbar.decode(frame)
-        corners = {}
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        corners, ids, rejected = detector.detectMarkers(gray)
         
-        for qr in qr_codes:
-            data = qr.data.decode('utf-8')
-            if data in ['CORNER_TL', 'CORNER_TR', 'CORNER_BL', 'CORNER_BR']:
-                points = qr.polygon
-                if len(points) == 4:
-                    center_x = sum(p.x for p in points) // len(points)
-                    center_y = sum(p.y for p in points) // len(points)
-                    corners[data] = (center_x, center_y)
+        corner_positions = {}
         
-        if len(corners) == 4:
+        if ids is not None:
+            for i, marker_id in enumerate(ids.flatten()):
+                if marker_id in self.corner_mapping:
+                    # Get center point of ArUco marker
+                    marker_corners = corners[i][0]  # Shape: (4, 2)
+                    center_x = int(np.mean(marker_corners[:, 0]))
+                    center_y = int(np.mean(marker_corners[:, 1]))
+                    corner_name = self.corner_mapping[marker_id]
+                    corner_positions[corner_name] = (center_x, center_y)
+        
+        if len(corner_positions) == 4:
             self.surface_corners = np.array([
-                corners['CORNER_TL'], corners['CORNER_TR'],
-                corners['CORNER_BR'], corners['CORNER_BL']
+                corner_positions['CORNER_TL'],
+                corner_positions['CORNER_TR'],
+                corner_positions['CORNER_BR'],
+                corner_positions['CORNER_BL']
             ], dtype=np.float32)
             self._calculate_transform_matrix()
-            print("Surface calibrated using corner markers!")
+            print("Surface calibrated using ArUco corner markers!")
             return True
         
         return False
@@ -357,8 +402,8 @@ class SurfaceCalibrator:
         return float(transformed[0][0][0]), float(transformed[0][0][1])
 
 
-class FoundryQRTracker:
-    """Main QR code tracking system with Foundry VTT integration."""
+class FoundryArucoTracker:
+    """Main ArUco tracking system with Foundry VTT integration."""
     
     def __init__(self, foundry_config: FoundryConfig, surface_width: int = 1000, surface_height: int = 1000):
         self.picam = None
@@ -366,8 +411,13 @@ class FoundryQRTracker:
         self.calibrator.surface_width = surface_width
         self.calibrator.surface_height = surface_height
         
+        # Initialize ArUco detector
+        self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+        self.parameters = cv2.aruco.DetectorParameters()
+        self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
+        
         self.foundry = FoundryIntegrator(foundry_config)
-        self.tracked_tokens: Dict[str, QRToken] = {}
+        self.tracked_tokens: Dict[int, ArucoToken] = {}
         self.token_timeout = 3.0
         self.running = False
         
@@ -386,6 +436,7 @@ class FoundryQRTracker:
             self.picam.start()
             time.sleep(2)
             logger.info("Camera initialized successfully!")
+            logger.info("ArUco detector ready (DICT_6X6_250)")
             return True
         except Exception as e:
             logger.error(f"Failed to initialize camera: {e}")
@@ -399,57 +450,83 @@ class FoundryQRTracker:
         
         logger.info("Starting surface calibration...")
         frame = self.picam.capture_array()
-        return self.calibrator.calibrate_surface(frame)
+        return self.calibrator.calibrate_surface(frame, self.detector)
     
-    def detect_qr_codes(self, frame: np.ndarray) -> List[QRToken]:
-        """Detect QR codes in the current frame."""
-        qr_codes = pyzbar.decode(frame)
+    def detect_aruco_markers(self, frame: np.ndarray) -> List[ArucoToken]:
+        """Detect ArUco markers in the current frame."""
+        # Convert to grayscale for detection
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        
+        # Detect markers
+        corners, ids, rejected = self.detector.detectMarkers(gray)
+        
         detected_tokens = []
         current_time = time.time()
         
-        for qr in qr_codes:
-            try:
-                qr_data = qr.data.decode('utf-8')
-                
-                if qr_data.startswith('CORNER_'):
-                    continue
-                
-                points = qr.polygon
-                if len(points) >= 4:
-                    center_x = sum(p.x for p in points) // len(points)
-                    center_y = sum(p.y for p in points) // len(points)
+        if ids is not None:
+            for i, marker_id in enumerate(ids.flatten()):
+                try:
+                    # Skip corner markers for token tracking
+                    if marker_id in [0, 1, 2, 3]:
+                        continue
                     
+                    # Get marker corners
+                    marker_corners = corners[i][0]  # Shape: (4, 2)
+                    corner_points = [(int(x), int(y)) for x, y in marker_corners]
+                    
+                    # Calculate center point
+                    center_x = int(np.mean(marker_corners[:, 0]))
+                    center_y = int(np.mean(marker_corners[:, 1]))
+                    
+                    # Convert to surface coordinates
                     surface_x, surface_y = self.calibrator.camera_to_surface_coords(
                         center_x, center_y)
                     
-                    qr_area = cv2.contourArea(np.array([(p.x, p.y) for p in points]))
-                    confidence = min(1.0, qr_area / 10000.0)
+                    # Calculate confidence based on marker area and shape quality
+                    marker_area = cv2.contourArea(marker_corners)
+                    confidence = min(1.0, marker_area / 10000.0)
+                    
+                    # Additional confidence check: how square is the marker?
+                    rect = cv2.minAreaRect(marker_corners)
+                    width, height = rect[1]
+                    if width > 0 and height > 0:
+                        aspect_ratio = min(width, height) / max(width, height)
+                        confidence *= aspect_ratio
+                    
+                    # Determine marker type using optimized schema
+                    if self.calibrator.player_id_range[0] <= marker_id <= self.calibrator.player_id_range[1]:
+                        marker_type = 'player'
+                    elif self.calibrator.item_id_range[0] <= marker_id <= self.calibrator.item_id_range[1]:
+                        marker_type = 'item'
+                    else:
+                        marker_type = 'custom'
                     
                     # Get or create Foundry token ID
                     foundry_token_id = None
-                    if qr_data in self.tracked_tokens:
-                        foundry_token_id = self.tracked_tokens[qr_data].foundry_token_id
+                    if marker_id in self.tracked_tokens:
+                        foundry_token_id = self.tracked_tokens[marker_id].foundry_token_id
                     else:
-                        foundry_token_id = self.foundry.create_or_find_token(qr_data)
+                        foundry_token_id = self.foundry.create_or_find_token(marker_id, marker_type)
                     
-                    token = QRToken(
-                        id=qr_data,
+                    token = ArucoToken(
+                        id=marker_id,
                         x=surface_x,
                         y=surface_y,
                         confidence=confidence,
                         last_seen=current_time,
-                        corners=[(p.x, p.y) for p in points],
+                        corners=corner_points,
+                        marker_type=marker_type,
                         foundry_token_id=foundry_token_id
                     )
                     detected_tokens.append(token)
                     
-            except Exception as e:
-                logger.error(f"Error processing QR code: {e}")
-                continue
+                except Exception as e:
+                    logger.error(f"Error processing ArUco marker {marker_id}: {e}")
+                    continue
         
         return detected_tokens
     
-    def update_tracked_tokens(self, detected_tokens: List[QRToken]):
+    def update_tracked_tokens(self, detected_tokens: List[ArucoToken]):
         """Update the tracked tokens list."""
         current_time = time.time()
         
@@ -510,7 +587,23 @@ class FoundryQRTracker:
                 status_color = (0, 255, 0) if token.foundry_token_id else (0, 0, 255)
                 status_text = "✓ FOUNDRY" if token.foundry_token_id else "✗ NO TOKEN"
                 
-                label = f"{token.id} | {status_text}"
+                # Generate label based on marker type
+                if token.marker_type == 'player':
+                    player_num = token.id - 10 + 1
+                    label = f"P{player_num} | {status_text}"
+                elif token.marker_type == 'item':
+                    # Short item names for display
+                    item_short_names = {
+                        30: "Gob", 31: "Orc", 32: "Ske", 33: "Drg", 34: "Trl", 35: "Wiz", 36: "Bst", 37: "Dem",
+                        40: "Chr", 41: "Mag", 42: "Gld", 43: "Pot", 44: "Wpn", 45: "Arm", 46: "Scr", 47: "Key",
+                        50: "Mer", 51: "Grd", 52: "Nob", 53: "Inn", 54: "Pri", 55: "Dor", 56: "Trp", 57: "Fir",
+                        58: "Alt", 59: "Por", 60: "Veh", 61: "Obj"
+                    }
+                    short_name = item_short_names.get(token.id, f"I{token.id}")
+                    label = f"{short_name} | {status_text}"
+                else:
+                    label = f"C{token.id} | {status_text}"
+                
                 cv2.putText(overlay_frame, label,
                            (center_x + 10, center_y - 10),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, status_color, 1)
@@ -526,6 +619,10 @@ class FoundryQRTracker:
         cv2.putText(overlay_frame, connection_status, (10, 30),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, status_color, 2)
         
+        # ArUco status
+        cv2.putText(overlay_frame, "ArUco Tracking (DICT_6X6_250)", (10, 60),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        
         return overlay_frame
     
     async def run_async(self, display: bool = True):
@@ -538,12 +635,12 @@ class FoundryQRTracker:
         await self.foundry.connect_websocket()
         
         self.running = True
-        logger.info("Starting Foundry QR tracking... Press 'q' to quit, 'r' to recalibrate")
+        logger.info("Starting Foundry ArUco tracking... Press 'q' to quit, 'r' to recalibrate")
         
         try:
             while self.running:
                 frame = self.picam.capture_array()
-                detected_tokens = self.detect_qr_codes(frame)
+                detected_tokens = self.detect_aruco_markers(frame)
                 self.update_tracked_tokens(detected_tokens)
                 
                 # Send updates to Foundry
@@ -551,7 +648,7 @@ class FoundryQRTracker:
                 
                 if display:
                     overlay_frame = self.draw_overlay(frame)
-                    cv2.imshow("Foundry QR Tracker", overlay_frame)
+                    cv2.imshow("Foundry ArUco Tracker", overlay_frame)
                     
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
@@ -579,8 +676,8 @@ class FoundryQRTracker:
 
 def main():
     """Main function with command line arguments."""
-    parser = argparse.ArgumentParser(description="Foundry VTT QR Token Tracker")
-    parser.add_argument("--foundry-url", required=True, help="Foundry VTT base URL (e.g., http://localhost:30000)")
+    parser = argparse.ArgumentParser(description="Foundry VTT ArUco Token Tracker")
+    parser.add_argument("--foundry-url", required=True, help="Foundry VTT base URL (e.g., http://192.168.1.50:30000)")
     parser.add_argument("--scene-id", required=True, help="Foundry scene ID to update")
     parser.add_argument("--api-key", help="Foundry API key (if authentication required)")
     parser.add_argument("--websocket-port", type=int, default=30001, help="WebSocket port for Foundry")
@@ -599,7 +696,7 @@ def main():
     )
     
     # Create tracker
-    tracker = FoundryQRTracker(foundry_config, args.surface_width, args.surface_height)
+    tracker = FoundryArucoTracker(foundry_config, args.surface_width, args.surface_height)
     
     # Initialize camera
     if not tracker.initialize_camera():

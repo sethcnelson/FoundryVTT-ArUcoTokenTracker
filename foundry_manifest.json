@@ -1,7 +1,7 @@
 {
-  "id": "qr-tracker",
-  "title": "QR Token Tracker",
-  "description": "Integrates physical QR code tracking with Foundry VTT tokens for hybrid tabletop gaming",
+  "id": "aruco-tracker",
+  "title": "ArUco Token Tracker",
+  "description": "Integrates physical ArUco marker tracking with Foundry VTT tokens for hybrid tabletop gaming. More robust and faster than QR codes.",
   "version": "1.0.0",
   "compatibility": {
     "minimum": "10",
@@ -10,15 +10,15 @@
   },
   "authors": [
     {
-      "name": "QR Tracker",
+      "name": "ArUco Tracker",
       "discord": "your-discord#0000"
     }
   ],
   "esmodules": [
-    "qr-tracker.js"
+    "aruco-tracker.js"
   ],
   "styles": [
-    "qr-tracker.css"
+    "aruco-tracker.css"
   ],
   "languages": [
     {
@@ -27,9 +27,9 @@
       "path": "lang/en.json"
     }
   ],
-  "url": "https://github.com/your-username/foundry-qr-tracker",
-  "manifest": "https://github.com/your-username/foundry-qr-tracker/releases/latest/download/module.json",
-  "download": "https://github.com/your-username/foundry-qr-tracker/releases/latest/download/qr-tracker.zip",
+  "url": "https://github.com/your-username/foundry-aruco-tracker",
+  "manifest": "https://github.com/your-username/foundry-aruco-tracker/releases/latest/download/module.json",
+  "download": "https://github.com/your-username/foundry-aruco-tracker/releases/latest/download/aruco-tracker.zip",
   "license": "LICENSE",
   "readme": "README.md",
   "media": [

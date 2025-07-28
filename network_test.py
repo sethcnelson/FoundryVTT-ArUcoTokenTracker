@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Network Test Script for Foundry QR Tracker
+Network Test Script for Foundry ArUco Token Tracker
 ==========================================
 
 This script tests network connectivity between the Raspberry Pi
@@ -93,7 +93,7 @@ async def test_websocket_server(port, duration=30):
         print(f"✓ Client connected from {websocket.remote_address}")
         connections.add(websocket)
         try:
-            await websocket.send("Hello from QR Tracker test server!")
+            await websocket.send("Hello from AruCo Token Tracker test server!")
             async for message in websocket:
                 print(f"Received: {message}")
                 await websocket.send(f"Echo: {message}")
@@ -136,7 +136,7 @@ def get_local_ip():
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Test network connectivity for Foundry QR Tracker")
+    parser = argparse.ArgumentParser(description="Test network connectivity for Foundry ArUco Token Tracker")
     parser.add_argument("--foundry-host", required=True, help="Foundry VTT host IP or hostname")
     parser.add_argument("--foundry-port", type=int, default=30000, help="Foundry VTT port")
     parser.add_argument("--websocket-port", type=int, default=30001, help="WebSocket port for testing")
@@ -146,7 +146,7 @@ async def main():
     args = parser.parse_args()
     
     print("=" * 60)
-    print("Foundry QR Tracker Network Test")
+    print("Foundry ArUco Token Tracker Network Test")
     print("=" * 60)
     print(f"Local IP: {get_local_ip()}")
     print(f"Target Foundry Host: {args.foundry_host}:{args.foundry_port}")
@@ -167,7 +167,7 @@ async def main():
     
     if connectivity_ok and http_ok:
         print("✓ Network connectivity looks good!")
-        print("You should be able to run the QR tracker with:")
+        print("You should be able to run the ArUco Token Tracker with:")
         print(f"  python3 foundry_qr_tracker.py --foundry-url {foundry_url} --scene-id YOUR_SCENE_ID")
     else:
         print("✗ Network issues detected:")
