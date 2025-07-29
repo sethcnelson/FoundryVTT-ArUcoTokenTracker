@@ -56,8 +56,16 @@ sudo apt update && sudo apt upgrade -y
 # Install required system packages
 sudo apt install python3-opencv python3-numpy python3-pip
 
-# Install Python packages
-pip3 install picamera2 opencv-python numpy websockets requests aiohttp
+# python-prctl requires libcap development headers, make sure you have those installed
+sudo apt install -y python3-libcamera python3-kms++ libcap-dev
+
+# Setup local virtual environment
+sudo apt install python3-venv
+python3 -m venv .venv
+
+# Install Python packages into virtual environment
+# (pip won't let us install without doing this)
+.venv/bin/pip install picamera2 opencv-python numpy websockets requests aiohttp
 ```
 
 ### 2. Foundry VTT Module Installation
@@ -75,13 +83,13 @@ pip3 install picamera2 opencv-python numpy websockets requests aiohttp
 
 ```bash
 # Generate basic set (corner + 20 player markers)
-python3 aruco_generator.py --output-dir aruco_markers --player-count 20
+.venv/bin/python aruco_generator.py --output-dir aruco_markers --player-count 20
 
 # Generate only corners
-python3 aruco_generator.py --corner-only
+.venv/bin/python aruco_generator.py --corner-only
 
 # Generate custom markers
-python3 aruco_generator.py --custom-file my_custom_markers.json
+.venv/bin/python aruco_generator.py --custom-file my_custom_markers.json
 ```
 
 **Output includes:**
