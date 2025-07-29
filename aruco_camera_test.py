@@ -27,7 +27,8 @@ Controls:
 
 import cv2
 import numpy as np
-from picamera2 import Picamera2
+""" TODO: **This might break when using Debian 12 'Bookworm' ** """
+from picamera import picamera 
 import time
 import argparse
 from dataclasses import dataclass
@@ -100,7 +101,7 @@ class ArucoPreviewApp:
     def initialize_camera(self) -> bool:
         """Initialize the Raspberry Pi camera."""
         try:
-            self.picam = Picamera2()
+            self.picam = picamera()
             
             # Configure camera for preview
             config = self.picam.create_preview_configuration(

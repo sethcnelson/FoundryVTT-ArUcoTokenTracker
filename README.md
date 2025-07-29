@@ -54,7 +54,7 @@ Create directory: `Data/modules/aruco-tracker/`
 sudo apt update && sudo apt upgrade -y
 
 # Install required system packages
-sudo apt install python3-opencv python3-numpy python3-pip
+# sudo apt install python3-opencv python3-numpy python3-pip
 
 # python-prctl requires libcap development headers, make sure you have those installed
 sudo apt install -y python3-libcamera python3-kms++ libcap-dev
@@ -62,10 +62,12 @@ sudo apt install -y python3-libcamera python3-kms++ libcap-dev
 # Setup local virtual environment
 sudo apt install python3-venv
 python3 -m venv .venv
+cd .venv
+source bin/activate
 
-# Install Python packages into virtual environment
+# Install Python packages into virtual environment (req'd in Debian 12 "Bookworm")
 # (pip won't let us install without doing this)
-.venv/bin/pip install picamera2 opencv-python numpy websockets requests aiohttp
+pip install -r project_dependencies.txt
 ```
 
 ### 2. Foundry VTT Module Installation
@@ -83,13 +85,13 @@ python3 -m venv .venv
 
 ```bash
 # Generate basic set (corner + 20 player markers)
-.venv/bin/python aruco_generator.py --output-dir aruco_markers --player-count 20
+python aruco_generator.py --output-dir aruco_markers --player-count 20
 
 # Generate only corners
-.venv/bin/python aruco_generator.py --corner-only
+python aruco_generator.py --corner-only
 
 # Generate custom markers
-.venv/bin/python aruco_generator.py --custom-file my_custom_markers.json
+python aruco_generator.py --custom-file my_custom_markers.json
 ```
 
 **Output includes:**
@@ -150,7 +152,7 @@ sudo ufw allow from 192.168.1.100
 
 ```bash
 # Start camera preview to position and test
-python3 aruco_preview.py --fps 2.0
+python aruco_preview.py --fps 2.0
 
 # Or use the launcher for easier setup
 chmod +x launch_preview.sh
