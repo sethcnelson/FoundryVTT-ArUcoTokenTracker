@@ -101,7 +101,7 @@ class ArucoPreviewApp:
     def initialize_camera(self) -> bool:
         """Initialize the Raspberry Pi camera."""
         try:
-            self.picam = picamera()
+            self.picam = PiCamera()
             
             # Configure camera for preview
             config = self.picam.create_preview_configuration(
