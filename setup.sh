@@ -129,17 +129,17 @@ install_system_packages_debian() {
 install_python_packages() {
     print_status "Installing Python packages..."
     
-    # Upgrade pip first
-    python3 -m pip install --upgrade pip
-    
     # Setup virtual environment for pip
     python3 -m venv aruco_env
 	source aruco_env/bin/activate
     
+    # Upgrade pip first
+    pip install --upgrade pip
+    
     # Install from requirements.txt if it exists
-    if [ -f "requirements.txt" ]; then
-        print_status "Installing from requirements.txt..."
-        pip install -r requirements.txt
+    if [ -f "dependencies.txt" ]; then
+        print_status "Installing from dependencies.txt..."
+        pip install -r dependencies.txt
     else
         # Manual installation
         print_status "Installing core packages manually..."
@@ -154,11 +154,11 @@ install_python_packages() {
         # Try to install OpenCV (may fail on some systems)
         if ! python3 -c "import cv2" 2>/dev/null; then
             print_status "Installing OpenCV..."
-            python3 -m pip install opencv-python>=4.5.0
+            pip install opencv-python>=4.5.0
             
             if [ $? -ne 0 ]; then
                 print_warning "OpenCV installation failed. Trying headless version..."
-                python3 -m pip install opencv-python-headless>=4.5.0
+                pip install opencv-python-headless>=4.5.0
             fi
         else
             print_status "OpenCV already available (system package)"
@@ -168,7 +168,7 @@ install_python_packages() {
         if is_raspberry_pi; then
             if ! python3 -c "import picamera2" 2>/dev/null; then
                 print_status "Installing picamera2..."
-                python3 -m pip install picamera2>=0.3.0
+                pip install picamera2>=0.3.0
             else
                 print_status "picamera2 already available (system package)"
             fi
