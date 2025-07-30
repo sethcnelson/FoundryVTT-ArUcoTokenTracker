@@ -50,9 +50,9 @@ print_aruco() {
 
 # Check prerequisites and provide installation guidance
 check_prerequisites() {
-    if [ ! -f "aruco_preview.py" ]; then
-        print_error "aruco_preview.py not found in current directory!"
-        echo "Please ensure you're running this script from the directory containing aruco_preview.py"
+    if [ ! -f "aruco_camera.py" ]; then
+        print_error "aruco_camera.py not found in current directory!"
+        echo "Please ensure you're running this script from the directory containing aruco_camera.py"
         exit 1
     fi
     
@@ -162,7 +162,7 @@ launch_setup() {
     print_status "- Optimized for camera positioning and ArUco testing"
     print_aruco "Place corner markers (IDs 0-3) at table corners"
     echo ""
-    python3 aruco_preview.py --fps 2.0 --resolution 1280x720
+    python3 aruco_camera.py --fps 2.0 --resolution 1280x720
 }
 
 # Monitor mode: Minimal UI for game monitoring
@@ -173,7 +173,7 @@ launch_monitor() {
     print_status "- Focus on player tokens"
     print_aruco "Tracking player markers (IDs 10-99) and custom markers (100+)"
     echo ""
-    python3 aruco_preview.py --fps 3.0 --resolution 1280x720 --no-help
+    python3 aruco_camera.py --fps 3.0 --resolution 1280x720 --no-help
 }
 
 # Debug mode: All features enabled, saves frames
@@ -184,7 +184,7 @@ launch_debug() {
     print_status "- Press 's' to save frames for debugging"
     print_aruco "Perfect for troubleshooting ArUco detection issues"
     echo ""
-    python3 aruco_preview.py --fps 1.0 --resolution 1280x720
+    python3 aruco_camera.py --fps 1.0 --resolution 1280x720
 }
 
 # Fullscreen mode: For wall displays or projectors
@@ -195,7 +195,7 @@ launch_fullscreen() {
     print_status "- Press 'f' to exit fullscreen"
     print_aruco "Great for demonstrating ArUco tracking to others"
     echo ""
-    python3 aruco_preview.py --fps 3.0 --resolution 1920x1080 --fullscreen --no-help
+    python3 aruco_camera.py --fps 3.0 --resolution 1920x1080 --fullscreen --no-help
 }
 
 # Generate and preview mode
@@ -210,10 +210,10 @@ launch_generate() {
         echo "Then test player markers within the bounded area"
         echo ""
         sleep 3
-        python3 aruco_preview.py --fps 2.0 --resolution 1280x720
+        python3 aruco_camera.py --fps 2.0 --resolution 1280x720
     else
         print_warning "Marker generation had issues, but starting preview anyway..."
-        python3 aruco_preview.py --fps 2.0 --resolution 1280x720
+        python3 aruco_camera.py --fps 2.0 --resolution 1280x720
     fi
 }
 
@@ -273,7 +273,7 @@ launch_custom() {
     print_aruco "ArUco DICT_6X6_250 detection active"
     echo ""
     
-    python3 aruco_preview.py --fps "$fps" --resolution "$resolution" $fullscreen_flag $no_help_flag $no_corners_flag
+    python3 aruco_camera.py --fps "$fps" --resolution "$resolution" $fullscreen_flag $no_help_flag $no_corners_flag
 }
 
 # Show usage information

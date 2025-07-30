@@ -42,6 +42,19 @@ class ArucoMarkerGenerator:
         self.border_bits = border_bits
         self.generated_markers = []
         
+        # Check OpenCV version for API compatibility
+        self.opencv_version = cv2.__version__
+        opencv_major = int(self.opencv_version.split('.')[0])
+        opencv_minor = int(self.opencv_version.split('.')[1])
+        
+        # Determine which marker generation API to use
+        if opencv_major > 4 or (opencv_major == 4 and opencv_minor >= 7):
+            self.use_new_api = True
+            print(f"Using new ArUco marker generation API (OpenCV {self.opencv_version})")
+        else:
+            self.use_new_api = False
+            print(f"Using legacy ArUco marker generation API (OpenCV {self.opencv_version})")
+        
         # Marker ID assignments - optimized for smaller markers
         self.corner_ids = {
             'CORNER_TL': 0,   # Top-Left
@@ -89,9 +102,26 @@ class ArucoMarkerGenerator:
         ]
     
     def generate_marker(self, marker_id: int) -> np.ndarray:
-        """Generate a single ArUco marker."""
-        marker_image = cv2.aruco.generateImageMarker(
-            self.dictionary, marker_id, self.marker_size, borderBits=self.border_bits)
+        """Generate a single ArUco marker with OpenCV version compatibility."""
+        if self.use_new_api:
+            # New API (OpenCV 4.7+)
+            try:
+                marker_image = cv2.aruco.generateImageMarker(
+                    self.dictionary, marker_id, self.marker_size, borderBits=self.border_bits)
+            except AttributeError:
+                # Fallback to legacy API if new function not available
+                print(f"Warning: generateImageMarker not available, using legacy API for marker {marker_id}")
+                marker_image = np.ones((self.marker_size, self.marker_size), dtype=np.uint8) * 255
+                cv2.aruco.drawMarker(self.dictionary, marker_id, self.marker_size, 
+                                   marker_image, borderBits=self.border_bits)
+        else:
+            # Legacy API (OpenCV < 4.7)
+            # Create a white background image
+            marker_image = np.ones((self.marker_size, self.marker_size), dtype=np.uint8) * 255
+            # Draw the marker onto the image
+            cv2.aruco.drawMarker(self.dictionary, marker_id, self.marker_size, 
+                               marker_image, borderBits=self.border_bits)
+            
         return marker_image
     
     def create_labeled_marker(self, marker_id: int, label: str, 
@@ -514,11 +544,34 @@ def get_player_number(marker_id):
 
 def get_item_name(marker_id):
     """Get standard item name from marker ID."""
-    return STANDARD_ITEMS.get(marker_id, f"Unknown_Item_{marker_id}")
+    return STANDARD_ITEMS.get(marker_id, f"Unknown_Item_{{marker_id}}")
+
+# Generate ArUco marker with version compatibility
+def generate_aruco_marker(marker_id, marker_size=200, border_bits=1):
+    """Generate an ArUco marker image with OpenCV version compatibility."""
+    if use_new_api:
+        # New API (OpenCV 4.7+)
+        try:
+            marker_image = cv2.aruco.generateImageMarker(
+                dictionary, marker_id, marker_size, borderBits=border_bits)
+        except AttributeError:
+            # Fallback to legacy API
+            marker_image = np.ones((marker_size, marker_size), dtype=np.uint8) * 255
+            cv2.aruco.drawMarker(dictionary, marker_id, marker_size, 
+                               marker_image, borderBits=border_bits)
+    else:
+        # Legacy API (OpenCV < 4.7)
+        marker_image = np.ones((marker_size, marker_size), dtype=np.uint8) * 255
+        cv2.aruco.drawMarker(dictionary, marker_id, marker_size, 
+                           marker_image, borderBits=border_bits)
+    
+    return marker_image
 
 # OpenCV version compatibility notes:
-# - OpenCV 4.7+ uses cv2.aruco.ArucoDetector() class
-# - OpenCV < 4.7 uses cv2.aruco.detectMarkers() function directly
+# - OpenCV 4.7+ uses cv2.aruco.generateImageMarker() function
+# - OpenCV < 4.7 uses cv2.aruco.drawMarker() function with existing image
+# - generateImageMarker() creates and returns a new image
+# - drawMarker() draws onto an existing image (requires white background)
 # - This code automatically detects and uses the appropriate method
 # - Raspberry Pi OS typically ships with OpenCV < 4.7
 '''
@@ -555,11 +608,12 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
     
-    print(f"ArUco Marker Generator - Optimized for Smaller Markers")
+    print(f"ArUco Marker Generator - OpenCV {generator.opencv_version}")
     print(f"======================================================")
     print(f"Output directory: {output_dir}")
     print(f"Marker size: {args.marker_size}px")
     print(f"Schema: Corners(0-3), Players(10-25), Items(30-61), Custom(62+)")
+    print(f"API Compatibility: {'New' if generator.use_new_api else 'Legacy'} (automatic detection)")
     print()
     
     # Initialize generator

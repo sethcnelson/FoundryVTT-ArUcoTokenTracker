@@ -80,9 +80,15 @@ print('✅ All packages OK')
 
 **Important**: The ArUco API changed in OpenCV 4.7+, but this code supports both versions automatically.
 
+**Detection Functions:**
 - **OpenCV < 4.7** (common on Raspberry Pi OS): Uses legacy `cv2.aruco.detectMarkers()` function
 - **OpenCV 4.7+**: Uses new `cv2.aruco.ArucoDetector()` class
-- **Auto-detection**: The code automatically detects your version and uses the appropriate API
+
+**Marker Generation Functions:**
+- **OpenCV < 4.7**: Uses `cv2.aruco.drawMarker()` function (draws onto existing image)
+- **OpenCV 4.7+**: Uses `cv2.aruco.generateImageMarker()` function (creates new image)
+
+**Auto-detection**: The code automatically detects your version and uses the appropriate APIs for both detection and generation.
 
 ### Check Your OpenCV Version
 ```bash
@@ -91,7 +97,7 @@ python3 -c "import cv2; print(f'OpenCV: {cv2.__version__}')"
 
 ### If You Have Issues
 ```bash
-# Check compatibility
+# Check compatibility for both detection and generation
 python3 check_opencv.py
 
 # Force specific version (if needed)
@@ -138,10 +144,12 @@ pip3 install opencv-contrib-python
 
 ### ArUco API Compatibility
 The code automatically handles both OpenCV versions:
-- **Legacy API** (OpenCV < 4.7): `cv2.aruco.detectMarkers()`  
-- **New API** (OpenCV 4.7+): `cv2.aruco.ArucoDetector()`
+- **Legacy Detection API** (OpenCV < 4.7): `cv2.aruco.detectMarkers()`  
+- **New Detection API** (OpenCV 4.7+): `cv2.aruco.ArucoDetector()`
+- **Legacy Generation API** (OpenCV < 4.7): `cv2.aruco.drawMarker()`
+- **New Generation API** (OpenCV 4.7+): `cv2.aruco.generateImageMarker()`
 
-If you get `AttributeError: module 'cv2.aruco' has no attribute 'ArucoDetector'`, this is normal for older OpenCV versions and the code will automatically fall back to the legacy API.
+If you get `AttributeError: module 'cv2.aruco' has no attribute 'ArucoDetector'` or `AttributeError: module 'cv2.aruco' has no attribute 'generateImageMarker'`, this is normal for older OpenCV versions and the code will automatically fall back to the legacy APIs.
 
 ### Camera Permission Issues
 ```bash
@@ -225,9 +233,10 @@ If you encounter issues:
 ### Common Error Solutions
 
 **"AttributeError: module 'cv2.aruco' has no attribute 'ArucoDetector'"**
+**"AttributeError: module 'cv2.aruco' has no attribute 'generateImageMarker'"**
 ```bash
-# This is normal for OpenCV < 4.7 (common on Raspberry Pi)
-# The code automatically uses legacy API - no action needed
+# These are normal for OpenCV < 4.7 (common on Raspberry Pi)
+# The code automatically uses legacy APIs - no action needed
 python3 check_opencv.py  # Verify compatibility
 ```
 

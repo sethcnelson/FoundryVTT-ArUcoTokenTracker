@@ -46,7 +46,7 @@ def check_opencv():
         # Test dictionary access
         dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         print(f"✓ ArUco module available")
-        print(f"  Dictionary DICT_6X6_250: {dictionary.markerSize} markers")
+        print(f"  Dictionary DICT_6X6_250: {len(dictionary)} markers")
         
     except AttributeError as e:
         print(f"✗ ArUco module not available: {e}")
@@ -88,6 +88,9 @@ def check_opencv():
         print(f"  Using: cv2.aruco.detectMarkers() function")
         api_version = "legacy"
     
+    # Initialize generation_api variable
+    generation_api = "legacy"  # Default value
+    
     # Test actual detection (without camera)
     print("\nTesting marker detection...")
     try:
@@ -113,25 +116,69 @@ def check_opencv():
         print(f"✗ Detection test failed: {e}")
         return False
     
+    # Test marker generation
+    print("\nTesting marker generation...")
+    try:
+        test_marker_id = 10
+        marker_size = 100
+        
+        if opencv_major > 4 or (opencv_major == 4 and opencv_minor >= 7):
+            # Try new API first
+            try:
+                marker_image = cv2.aruco.generateImageMarker(
+                    dictionary, test_marker_id, marker_size, borderBits=1)
+                print(f"✓ New API marker generation successful")
+                generation_api = "new"
+            except AttributeError:
+                # Fall back to legacy API
+                marker_image = np.ones((marker_size, marker_size), dtype=np.uint8) * 255
+                cv2.aruco.drawMarker(dictionary, test_marker_id, marker_size, 
+                                   marker_image, borderBits=1)
+                print(f"✓ Legacy API marker generation successful (fallback)")
+                generation_api = "legacy"
+        else:
+            # Use legacy API
+            marker_image = np.ones((marker_size, marker_size), dtype=np.uint8) * 255
+            cv2.aruco.drawMarker(dictionary, test_marker_id, marker_size, 
+                               marker_image, borderBits=1)
+            print(f"✓ Legacy API marker generation successful")
+            generation_api = "legacy"
+            
+        # Verify the generated marker is valid
+        if marker_image is not None and marker_image.shape == (marker_size, marker_size):
+            print(f"✓ Generated marker has correct dimensions: {marker_image.shape}")
+        else:
+            print(f"✗ Generated marker has incorrect dimensions: {marker_image.shape if marker_image is not None else 'None'}")
+            return False
+            
+    except Exception as e:
+        print(f"✗ Marker generation test failed: {e}")
+        return False
+    
     # Summary
     print("\n" + "=" * 40)
     print("SUMMARY")
     print("=" * 40)
     print(f"OpenCV Version: {opencv_version}")
     print(f"ArUco Support: Available")
-    print(f"API Version: {api_version.title()}")
+    print(f"Detection API: {api_version.title()}")
+    print(f"Generation API: {generation_api.title()}")
     print(f"Compatibility: ✓ Compatible with ArUco Token Tracker")
     
     # Recommendations
     print("\nRecommendations:")
     if opencv_major == 4 and opencv_minor < 7:
-        print("• Your OpenCV version uses the legacy ArUco API")
+        print("• Your OpenCV version uses the legacy ArUco APIs")
+        print("• Detection: cv2.aruco.detectMarkers() function")
+        print("• Generation: cv2.aruco.drawMarker() function")
         print("• This is common on Raspberry Pi OS and works perfectly")
-        print("• The tracker automatically detects and uses the correct API")
+        print("• The tracker automatically detects and uses the correct APIs")
     elif opencv_major >= 4 and opencv_minor >= 7:
-        print("• Your OpenCV version supports the new ArUco API")
+        print("• Your OpenCV version supports the new ArUco APIs")
+        print("• Detection: cv2.aruco.ArucoDetector() class")
+        print("• Generation: cv2.aruco.generateImageMarker() function")
         print("• This provides slightly better performance")
-        print("• The tracker will automatically use the new API")
+        print("• The tracker will automatically use the new APIs")
     else:
         print("• Consider upgrading OpenCV for better ArUco support")
         print("• Minimum recommended: OpenCV 4.2+")

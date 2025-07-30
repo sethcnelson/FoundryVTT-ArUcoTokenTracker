@@ -167,8 +167,8 @@ install_python_packages() {
         # Install picamera2 for Raspberry Pi
         if is_raspberry_pi; then
             if ! python3 -c "import picamera2" 2>/dev/null; then
-                print_warning "Install picamera2 using apt to ensure libcamera gets installed"
-                # pip install picamera2>=0.3.0
+                print_status "Installing picamera2..."
+                pip install picamera2>=0.3.0
             else
                 print_status "picamera2 already available (system package)"
             fi
