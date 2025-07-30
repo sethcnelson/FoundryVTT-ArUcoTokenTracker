@@ -58,7 +58,7 @@ class ArucoPreviewApp:
         
         # Initialize ArUco detector with backward compatibility
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-        self.parameters = cv2.aruco.DetectorParameters()
+        self.parameters = cv2.aruco.DetectorParameters_create()
         
         # Check OpenCV version for detector initialization
         self.opencv_version = cv2.__version__
@@ -151,7 +151,7 @@ class ArucoPreviewApp:
         else:
             # Legacy API (OpenCV < 4.7)
             corners, ids, rejected = cv2.aruco.detectMarkers(
-                gray, self.dictionary, parameters=self.parameters)
+                image=gray, dictionary=self.dictionary, parameters=self.parameters)
         
         detected_markers = []
         if ids is not None:

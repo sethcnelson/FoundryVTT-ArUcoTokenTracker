@@ -46,7 +46,7 @@ def check_opencv():
         # Test dictionary access
         dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         print(f"✓ ArUco module available")
-        print(f"  Dictionary DICT_6X6_250: {len(dictionary)} markers")
+        print(f"  Dictionary DICT_6X6_250: {dictionary.markerSize} markers")
         
     except AttributeError as e:
         print(f"✗ ArUco module not available: {e}")
