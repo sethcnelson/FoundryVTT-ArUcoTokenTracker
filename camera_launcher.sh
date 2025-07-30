@@ -223,7 +223,7 @@ launch_custom() {
     echo ""
     
     # Get FPS
-    echo -n "Enter FPS (1-30, default 2.0 for ArUco): "
+    echo -n "Enter FPS (1-10, default 2.0 for ArUco): "
     read fps_input
     fps=${fps_input:-2.0}
     

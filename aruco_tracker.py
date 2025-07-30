@@ -421,7 +421,7 @@ class FoundryArucoTracker:
         
         # Initialize ArUco detector with backward compatibility
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-        self.parameters = cv2.aruco.DetectorParameters()
+        self.parameters = cv2.aruco.DetectorParameters_create()
         
         # Check OpenCV version for detector initialization
         self.opencv_version = cv2.__version__
