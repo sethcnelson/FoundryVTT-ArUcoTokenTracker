@@ -132,16 +132,20 @@ install_python_packages() {
     # Upgrade pip first
     python3 -m pip install --upgrade pip
     
+    # Setup virtual environment for pip
+    python3 -m venv aruco_env
+	source aruco_env/bin/activate
+    
     # Install from requirements.txt if it exists
     if [ -f "requirements.txt" ]; then
         print_status "Installing from requirements.txt..."
-        python3 -m pip install -r requirements.txt
+        pip install -r requirements.txt
     else
         # Manual installation
         print_status "Installing core packages manually..."
         
         # Core packages that should work on most systems
-        python3 -m pip install \
+        pip install \
             numpy>=1.19.0 \
             Pillow>=8.0.0 \
             websockets>=10.0 \
