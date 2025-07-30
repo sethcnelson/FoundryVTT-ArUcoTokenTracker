@@ -27,8 +27,7 @@ Controls:
 
 import cv2
 import numpy as np
-""" TODO: **This might break when using Debian 12 'Bookworm' ** """
-from picamera import picamera 
+from picamera2 import Picamera2
 import time
 import argparse
 from dataclasses import dataclass
@@ -57,10 +56,29 @@ class ArucoPreviewApp:
         self.resolution = resolution
         self.running = False
         
-        # Initialize ArUco detector
+        # Initialize ArUco detector with backward compatibility
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         self.parameters = cv2.aruco.DetectorParameters()
-        self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
+        
+        # Check OpenCV version for detector initialization
+        self.opencv_version = cv2.__version__
+        opencv_major = int(self.opencv_version.split('.')[0])
+        opencv_minor = int(self.opencv_version.split('.')[1])
+        
+        # Use new ArucoDetector class if available (OpenCV 4.7+)
+        if opencv_major > 4 or (opencv_major == 4 and opencv_minor >= 7):
+            try:
+                self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
+                self.use_new_api = True
+                print(f"Using new ArUco API (OpenCV {self.opencv_version})")
+            except AttributeError:
+                self.detector = None
+                self.use_new_api = False
+                print(f"Falling back to legacy ArUco API (OpenCV {self.opencv_version})")
+        else:
+            self.detector = None
+            self.use_new_api = False
+            print(f"Using legacy ArUco API (OpenCV {self.opencv_version})")
         
         # Detection toggles
         self.detect_corners = True
@@ -101,7 +119,7 @@ class ArucoPreviewApp:
     def initialize_camera(self) -> bool:
         """Initialize the Raspberry Pi camera."""
         try:
-            self.picam = PiCamera()
+            self.picam = Picamera2()
             
             # Configure camera for preview
             config = self.picam.create_preview_configuration(
@@ -113,7 +131,8 @@ class ArucoPreviewApp:
             # Allow camera to warm up
             time.sleep(2)
             print(f"Camera initialized: {self.resolution[0]}x{self.resolution[1]} @ {self.fps} FPS")
-            print("ArUco detector ready (DICT_6X6_250)")
+            print(f"OpenCV version: {self.opencv_version}")
+            print(f"ArUco API: {'New (4.7+)' if self.use_new_api else 'Legacy (<4.7)'}")
             return True
             
         except Exception as e:
@@ -125,8 +144,14 @@ class ArucoPreviewApp:
         # Convert to grayscale for detection
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         
-        # Detect markers
-        corners, ids, rejected = self.detector.detectMarkers(gray)
+        # Detect markers using appropriate API
+        if self.use_new_api and self.detector is not None:
+            # New API (OpenCV 4.7+)
+            corners, ids, rejected = self.detector.detectMarkers(gray)
+        else:
+            # Legacy API (OpenCV < 4.7)
+            corners, ids, rejected = cv2.aruco.detectMarkers(
+                gray, self.dictionary, parameters=self.parameters)
         
         detected_markers = []
         if ids is not None:

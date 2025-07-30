@@ -36,7 +36,7 @@ This system uses **ArUco markers** instead of QR codes for superior tracking per
 
 ### Raspberry Pi Files:
 1. **`aruco_generator.py`** - Generate and print ArUco markers
-2. **`aruco_tracker.py`** - Main tracking script
+2. **`foundry_aruco_tracker.py`** - Main tracking script
 3. **`aruco_preview.py`** - Camera preview with ArUco overlays
 4. **`network_test.py`** - Network connectivity test script
 
@@ -54,20 +54,10 @@ Create directory: `Data/modules/aruco-tracker/`
 sudo apt update && sudo apt upgrade -y
 
 # Install required system packages
-# sudo apt install python3-opencv python3-numpy python3-pip
+sudo apt install python3-opencv python3-numpy python3-pip
 
-# python-prctl requires libcap development headers, make sure you have those installed
-sudo apt install -y python3-libcamera python3-kms++ libcap-dev
-
-# Setup local virtual environment
-sudo apt install python3-venv
-python3 -m venv .venv
-cd .venv
-source bin/activate
-
-# Install Python packages into virtual environment (req'd in Debian 12 "Bookworm")
-# (pip won't let us install without doing this)
-pip install -r project_dependencies.txt
+# Install Python packages
+pip3 install picamera2 opencv-python numpy websockets requests aiohttp
 ```
 
 ### 2. Foundry VTT Module Installation
@@ -85,13 +75,13 @@ pip install -r project_dependencies.txt
 
 ```bash
 # Generate basic set (corner + 20 player markers)
-python aruco_generator.py --output-dir aruco_markers --player-count 20
+python3 aruco_generator.py --output-dir aruco_markers --player-count 20
 
 # Generate only corners
-python aruco_generator.py --corner-only
+python3 aruco_generator.py --corner-only
 
 # Generate custom markers
-python aruco_generator.py --custom-file my_custom_markers.json
+python3 aruco_generator.py --custom-file my_custom_markers.json
 ```
 
 **Output includes:**
@@ -152,7 +142,7 @@ sudo ufw allow from 192.168.1.100
 
 ```bash
 # Start camera preview to position and test
-python aruco_preview.py --fps 2.0
+python3 aruco_preview.py --fps 2.0
 
 # Or use the launcher for easier setup
 chmod +x launch_preview.sh
@@ -187,7 +177,7 @@ chmod +x launch_preview.sh
 
 **For Remote Foundry (most common):**
 ```bash
-python3 aruco_tracker.py \
+python3 foundry_aruco_tracker.py \
   --foundry-url "http://192.168.1.50:30000" \
   --scene-id "abc123def456" \
   --surface-width 1000 \
@@ -231,14 +221,20 @@ python3 aruco_tracker.py \
 
 ## Troubleshooting
 
-### ArUco Detection Issues
+**ArUco Detection Issues:**
 
-**Markers Not Detected:**
+**No markers detected:**
 - Ensure high contrast printing (pure black/white)
 - Check marker isn't damaged or wrinkled
 - Verify adequate lighting (avoid harsh shadows)
 - Try increasing marker size
 - Clean camera lens
+
+**"AttributeError: ArucoDetector" errors:**
+- This is normal for OpenCV < 4.7 (common on Raspberry Pi OS)
+- The code automatically detects your OpenCV version and uses the appropriate API
+- Run `python3 check_opencv.py` to verify compatibility
+- No action needed - the tracker works with both API versions
 
 **Poor Detection Performance:**
 - Use DICT_6X6_250 dictionary (default - good balance)
@@ -396,7 +392,7 @@ echo "Network test complete! If all tests pass, you're ready for ArUco tracking.
 
 **Python Command:**
 ```bash
-python3 aruco_tracker.py \
+python3 foundry_aruco_tracker.py \
   --foundry-url "http://192.168.1.50:30000" \
   --scene-id "your-scene-id-from-foundry" \
   --websocket-port 30001

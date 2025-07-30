@@ -409,16 +409,35 @@ class ArucoMarkerGenerator:
     def generate_detection_reference(self, output_dir: Path):
         """Generate reference code for ArUco detection."""
         reference_code = f'''
-# ArUco Detection Reference Code - Optimized Schema
-# ================================================
+# ArUco Detection Reference Code - Optimized Schema with OpenCV Compatibility
+# ==========================================================================
 
 import cv2
 import numpy as np
 
-# Initialize detector
+# Initialize detector with backward compatibility
 dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 parameters = cv2.aruco.DetectorParameters()
-detector = cv2.aruco.ArucoDetector(dictionary, parameters)
+
+# Check OpenCV version for detector initialization
+opencv_version = cv2.__version__
+opencv_major = int(opencv_version.split('.')[0])
+opencv_minor = int(opencv_version.split('.')[1])
+
+# Determine which API to use
+if opencv_major > 4 or (opencv_major == 4 and opencv_minor >= 7):
+    try:
+        detector = cv2.aruco.ArucoDetector(dictionary, parameters)
+        use_new_api = True
+        print(f"Using new ArUco API (OpenCV {{opencv_version}})")
+    except AttributeError:
+        detector = None
+        use_new_api = False
+        print(f"Falling back to legacy ArUco API (OpenCV {{opencv_version}})")
+else:
+    detector = None
+    use_new_api = False
+    print(f"Using legacy ArUco API (OpenCV {{opencv_version}})")
 
 # Optimized ID ranges for smaller markers
 CORNER_IDS = [0, 1, 2, 3]
@@ -428,7 +447,16 @@ ITEM_ID_RANGE = ({self.item_id_range[0]}, {self.item_id_range[1]})      # 32 sta
 # Detect markers in frame
 def detect_aruco_markers(frame):
     """Detect ArUco markers and return corners, ids, and rejected candidates."""
-    corners, ids, rejected = detector.detectMarkers(frame)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
+    # Use appropriate API based on OpenCV version
+    if use_new_api and detector is not None:
+        # New API (OpenCV 4.7+)
+        corners, ids, rejected = detector.detectMarkers(gray)
+    else:
+        # Legacy API (OpenCV < 4.7)
+        corners, ids, rejected = cv2.aruco.detectMarkers(
+            gray, dictionary, parameters=parameters)
     
     detected_markers = []
     if ids is not None:
@@ -487,6 +515,12 @@ def get_player_number(marker_id):
 def get_item_name(marker_id):
     """Get standard item name from marker ID."""
     return STANDARD_ITEMS.get(marker_id, f"Unknown_Item_{marker_id}")
+
+# OpenCV version compatibility notes:
+# - OpenCV 4.7+ uses cv2.aruco.ArucoDetector() class
+# - OpenCV < 4.7 uses cv2.aruco.detectMarkers() function directly
+# - This code automatically detects and uses the appropriate method
+# - Raspberry Pi OS typically ships with OpenCV < 4.7
 '''
         
         ref_path = output_dir / 'aruco_detection_reference.py'

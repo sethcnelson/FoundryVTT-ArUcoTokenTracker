@@ -303,21 +303,29 @@ class SurfaceCalibrator:
         self.player_id_range = (10, 25)  # 16 players
         self.item_id_range = (30, 61)    # 32 standard items
     
-    def calibrate_surface(self, frame: np.ndarray, detector) -> bool:
+    def calibrate_surface(self, frame: np.ndarray, tracker) -> bool:
         """Calibrate the surface by detecting corner markers or manual selection."""
         print("Surface calibration mode:")
         print("1. Place corner markers (ArUco IDs: 0=TL, 1=TR, 2=BR, 3=BL)")
         print("2. Or press 'c' to manually select corners")
         
-        if self._detect_corner_markers(frame, detector):
+        if self._detect_corner_markers(frame, tracker):
             return True
         
         return self._manual_corner_selection(frame)
     
-    def _detect_corner_markers(self, frame: np.ndarray, detector) -> bool:
+    def _detect_corner_markers(self, frame: np.ndarray, tracker) -> bool:
         """Detect corner markers automatically."""
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        corners, ids, rejected = detector.detectMarkers(gray)
+        
+        # Use the tracker's detection method to maintain consistency
+        if hasattr(tracker, 'use_new_api') and tracker.use_new_api and tracker.detector is not None:
+            # New API (OpenCV 4.7+)
+            corners, ids, rejected = tracker.detector.detectMarkers(gray)
+        else:
+            # Legacy API (OpenCV < 4.7)
+            corners, ids, rejected = cv2.aruco.detectMarkers(
+                gray, tracker.dictionary, parameters=tracker.parameters)
         
         corner_positions = {}
         
@@ -411,10 +419,26 @@ class FoundryArucoTracker:
         self.calibrator.surface_width = surface_width
         self.calibrator.surface_height = surface_height
         
-        # Initialize ArUco detector
+        # Initialize ArUco detector with backward compatibility
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         self.parameters = cv2.aruco.DetectorParameters()
-        self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
+        
+        # Check OpenCV version for detector initialization
+        self.opencv_version = cv2.__version__
+        opencv_major = int(self.opencv_version.split('.')[0])
+        opencv_minor = int(self.opencv_version.split('.')[1])
+        
+        # Use new ArucoDetector class if available (OpenCV 4.7+)
+        if opencv_major > 4 or (opencv_major == 4 and opencv_minor >= 7):
+            try:
+                self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
+                self.use_new_api = True
+            except AttributeError:
+                self.detector = None
+                self.use_new_api = False
+        else:
+            self.detector = None
+            self.use_new_api = False
         
         self.foundry = FoundryIntegrator(foundry_config)
         self.tracked_tokens: Dict[int, ArucoToken] = {}
@@ -436,7 +460,8 @@ class FoundryArucoTracker:
             self.picam.start()
             time.sleep(2)
             logger.info("Camera initialized successfully!")
-            logger.info("ArUco detector ready (DICT_6X6_250)")
+            logger.info(f"OpenCV version: {self.opencv_version}")
+            logger.info(f"ArUco API: {'New (4.7+)' if self.use_new_api else 'Legacy (<4.7)'}")
             return True
         except Exception as e:
             logger.error(f"Failed to initialize camera: {e}")
@@ -450,15 +475,21 @@ class FoundryArucoTracker:
         
         logger.info("Starting surface calibration...")
         frame = self.picam.capture_array()
-        return self.calibrator.calibrate_surface(frame, self.detector)
+        return self.calibrator.calibrate_surface(frame, self)
     
     def detect_aruco_markers(self, frame: np.ndarray) -> List[ArucoToken]:
         """Detect ArUco markers in the current frame."""
         # Convert to grayscale for detection
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         
-        # Detect markers
-        corners, ids, rejected = self.detector.detectMarkers(gray)
+        # Detect markers using appropriate API
+        if self.use_new_api and self.detector is not None:
+            # New API (OpenCV 4.7+)
+            corners, ids, rejected = self.detector.detectMarkers(gray)
+        else:
+            # Legacy API (OpenCV < 4.7)
+            corners, ids, rejected = cv2.aruco.detectMarkers(
+                gray, self.dictionary, parameters=self.parameters)
         
         detected_tokens = []
         current_time = time.time()

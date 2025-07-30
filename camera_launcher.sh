@@ -6,7 +6,7 @@ ArUco Camera Preview Launcher
 Quick launcher script for the ArUco camera preview tool with common configurations.
 
 Usage:
-    ./launch_aruco_preview.sh [preset]
+    ./camera_launcher.sh [preset]
 
 Presets:
     setup    - Setup mode: 2 FPS, help on, good for camera positioning and marker testing
@@ -48,7 +48,7 @@ print_aruco() {
     echo -e "${MAGENTA}[ARUCO]${NC} $1"
 }
 
-# Check if camera_preview.py exists
+# Check prerequisites and provide installation guidance
 check_prerequisites() {
     if [ ! -f "aruco_preview.py" ]; then
         print_error "aruco_preview.py not found in current directory!"
@@ -59,18 +59,50 @@ check_prerequisites() {
     # Check if Python is available
     if ! command -v python3 &> /dev/null; then
         print_error "python3 not found! Please install Python 3."
+        echo "On Raspberry Pi: sudo apt install python3"
         exit 1
     fi
     
-    # Check for OpenCV and ArUco support
+    # Check for required Python packages
+    missing_packages=()
+    
+    if ! python3 -c "import cv2" 2>/dev/null; then
+        missing_packages+=("opencv-python")
+    fi
+    
+    if ! python3 -c "import numpy" 2>/dev/null; then
+        missing_packages+=("numpy")
+    fi
+    
+    if ! python3 -c "from picamera2 import Picamera2" 2>/dev/null; then
+        missing_packages+=("picamera2")
+    fi
+    
+    if [ ${#missing_packages[@]} -gt 0 ]; then
+        print_error "Missing required packages: ${missing_packages[*]}"
+        echo ""
+        echo "Quick fix options:"
+        echo "1. Run the automated installer:"
+        echo "   chmod +x install_dependencies.sh && ./install_dependencies.sh"
+        echo ""
+        echo "2. Install manually:"
+        echo "   pip3 install -r requirements.txt"
+        echo ""
+        echo "3. On Raspberry Pi, use system packages:"
+        echo "   sudo apt install python3-opencv python3-numpy python3-picamera2"
+        echo ""
+        exit 1
+    fi
+    
+    # Check for OpenCV ArUco support
     if ! python3 -c "import cv2; cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)" 2>/dev/null; then
-        print_error "OpenCV with ArUco support not found!"
-        echo "Please install: pip3 install opencv-python"
+        print_error "OpenCV ArUco support not found!"
+        echo "Try: pip3 install opencv-contrib-python"
         exit 1
     fi
     
-    print_status "Prerequisites check passed"
-    print_aruco "ArUco DICT_6X6_250 dictionary available"
+    print_status "All prerequisites satisfied ✓"
+    print_aruco "ArUco DICT_6X6_250 dictionary available ✓"
 }
 
 # Generate ArUco markers
