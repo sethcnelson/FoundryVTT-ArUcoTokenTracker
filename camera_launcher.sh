@@ -9,8 +9,8 @@ Usage:
     ./camera_launcher.sh [preset]
 
 Presets:
-    setup    - Setup mode: 2 FPS, help on, good for camera positioning and marker testing
-    monitor  - Monitor mode: 3 FPS, minimal UI, optimized for game monitoring  
+    setup    - Setup mode: 5 FPS, help on, good for camera positioning and marker testing
+    monitor  - Monitor mode: 10 FPS, minimal UI, optimized for game monitoring  
     debug    - Debug mode: 1 FPS, all overlays, save frames enabled
     fullscreen - Fullscreen mode for wall displays
     generate - Generate ArUco markers first, then preview
@@ -156,24 +156,24 @@ generate_markers() {
 # Setup mode: Good for initial camera positioning and calibration
 launch_setup() {
     print_status "Starting SETUP mode..."
-    print_status "- 2 FPS for smooth setup"
+    print_status "- 5 FPS for smooth setup"
     print_status "- Help overlay enabled"
     print_status "- All detection enabled"
     print_status "- Optimized for camera positioning and ArUco testing"
     print_aruco "Place corner markers (IDs 0-3) at table corners"
     echo ""
-    python3 aruco_camera.py --fps 2.0 --resolution 1280x720
+    python3 aruco_camera.py --fps 5 --resolution 1280x720
 }
 
 # Monitor mode: Minimal UI for game monitoring
 launch_monitor() {
     print_status "Starting MONITOR mode..."
-    print_status "- 3 FPS for smooth monitoring (ArUco is faster than QR)"
+    print_status "- 10 FPS for smooth monitoring"
     print_status "- Help overlay disabled"
     print_status "- Focus on player tokens"
     print_aruco "Tracking player markers (IDs 10-99) and custom markers (100+)"
     echo ""
-    python3 aruco_camera.py --fps 3.0 --resolution 1280x720 --no-help
+    python3 aruco_camera.py --fps 10 --resolution 1920x1080 --no-help
 }
 
 # Debug mode: All features enabled, saves frames
@@ -190,12 +190,12 @@ launch_debug() {
 # Fullscreen mode: For wall displays or projectors
 launch_fullscreen() {
     print_status "Starting FULLSCREEN mode..."
-    print_status "- 3 FPS optimized for display"
+    print_status "- 10 FPS optimized for display"
     print_status "- Fullscreen mode enabled"
     print_status "- Press 'f' to exit fullscreen"
     print_aruco "Great for demonstrating ArUco tracking to others"
     echo ""
-    python3 aruco_camera.py --fps 3.0 --resolution 1920x1080 --fullscreen --no-help
+    python3 aruco_camera.py --fps 10 --resolution 1920x1080 --fullscreen --no-help
 }
 
 # Generate and preview mode
@@ -223,7 +223,7 @@ launch_custom() {
     echo ""
     
     # Get FPS
-    echo -n "Enter FPS (0.5-5.0, default 2.0 for ArUco): "
+    echo -n "Enter FPS (1-30, default 2.0 for ArUco): "
     read fps_input
     fps=${fps_input:-2.0}
     
@@ -231,15 +231,18 @@ launch_custom() {
     echo "Available resolutions:"
     echo "  1) 640x480   (Low - good for older Pis)"
     echo "  2) 1280x720  (HD - Default, recommended)"
-    echo "  3) 1920x1080 (Full HD - for powerful setups)"
-    echo "  4) Custom"
-    echo -n "Choose resolution (1-4, default 2): "
+    echo "  3) 1920x1080 (Full HD - for capable setups)"
+    echo "  4) 2592x1944 (HD+ - for powerful setups)"
+    echo "  5) Custom"
+    echo -n "Choose resolution (1-5, default 2): "
     read res_choice
     
     case $res_choice in
         1) resolution="640x480" ;;
+        2) resolution="1280x720" ;;
         3) resolution="1920x1080" ;;
-        4) 
+        4) resolution="2592x1944" ;;
+        5) 
             echo -n "Enter custom resolution (WIDTHxHEIGHT): "
             read resolution
             ;;
@@ -283,8 +286,8 @@ show_usage() {
     echo "Usage: $0 [preset]"
     echo ""
     echo "Available presets:"
-    echo "  setup      - Setup mode: 2 FPS, help on, good for camera positioning"
-    echo "  monitor    - Monitor mode: 3 FPS, minimal UI, optimized for gameplay"
+    echo "  setup      - Setup mode: 5 FPS, help on, good for camera positioning"
+    echo "  monitor    - Monitor mode: 10 FPS, minimal UI, optimized for gameplay"
     echo "  debug      - Debug mode: 1 FPS, all overlays, frame saving"
     echo "  fullscreen - Fullscreen mode for wall displays (1920x1080)"
     echo "  generate   - Generate ArUco markers, then start preview"

@@ -608,6 +608,10 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
     
+    # Initialize generator
+    generator = ArucoMarkerGenerator(marker_size=args.marker_size)
+    all_markers = []
+    
     print(f"ArUco Marker Generator - OpenCV {generator.opencv_version}")
     print(f"======================================================")
     print(f"Output directory: {output_dir}")
@@ -615,10 +619,6 @@ def main():
     print(f"Schema: Corners(0-3), Players(10-25), Items(30-61), Custom(62+)")
     print(f"API Compatibility: {'New' if generator.use_new_api else 'Legacy'} (automatic detection)")
     print()
-    
-    # Initialize generator
-    generator = ArucoMarkerGenerator(marker_size=args.marker_size)
-    all_markers = []
     
     # Handle complete set generation
     if args.complete:
