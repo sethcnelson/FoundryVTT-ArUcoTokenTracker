@@ -60,8 +60,16 @@ def check_opencv():
     
     # Test detector parameters
     try:
-        parameters = cv2.aruco.DetectorParameters()
-        print(f"✓ ArUco DetectorParameters available")
+        # Try newer parameter creation method first
+        try:
+            parameters = cv2.aruco.DetectorParameters()
+            print(f"✓ ArUco DetectorParameters() available (newer API)")
+            param_api = "new"
+        except AttributeError:
+            # Fall back to older method
+            parameters = cv2.aruco.DetectorParameters_create()
+            print(f"✓ ArUco DetectorParameters_create() available (older API)")
+            param_api = "old"
     except Exception as e:
         print(f"✗ Error creating DetectorParameters: {e}")
         return False
@@ -163,6 +171,7 @@ def check_opencv():
     print(f"ArUco Support: Available")
     print(f"Detection API: {api_version.title()}")
     print(f"Generation API: {generation_api.title()}")
+    print(f"Parameters API: {param_api.title()}")
     print(f"Compatibility: ✓ Compatible with ArUco Token Tracker")
     
     # Recommendations
@@ -171,12 +180,17 @@ def check_opencv():
         print("• Your OpenCV version uses the legacy ArUco APIs")
         print("• Detection: cv2.aruco.detectMarkers() function")
         print("• Generation: cv2.aruco.drawMarker() function")
+        if param_api == "old":
+            print("• Parameters: cv2.aruco.DetectorParameters_create() function")
+        else:
+            print("• Parameters: cv2.aruco.DetectorParameters() function")
         print("• This is common on Raspberry Pi OS and works perfectly")
         print("• The tracker automatically detects and uses the correct APIs")
     elif opencv_major >= 4 and opencv_minor >= 7:
         print("• Your OpenCV version supports the new ArUco APIs")
         print("• Detection: cv2.aruco.ArucoDetector() class")
         print("• Generation: cv2.aruco.generateImageMarker() function")
+        print("• Parameters: cv2.aruco.DetectorParameters() function")
         print("• This provides slightly better performance")
         print("• The tracker will automatically use the new APIs")
     else:

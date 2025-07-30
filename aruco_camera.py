@@ -58,8 +58,14 @@ class ArucoPreviewApp:
         
         # Initialize ArUco detector with backward compatibility
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-        self.parameters = cv2.aruco.DetectorParameters_create()
-        
+
+        # Create detector parameters with version compatibility
+        try:
+            self.parameters = cv2.aruco.DetectorParameters()
+        except AttributeError:
+            # Older OpenCV versions use DetectorParameters_create()
+            self.parameters = cv2.aruco.DetectorParameters_create()
+                
         # Check OpenCV version for detector initialization
         self.opencv_version = cv2.__version__
         opencv_major = int(self.opencv_version.split('.')[0])

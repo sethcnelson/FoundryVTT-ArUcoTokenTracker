@@ -33,10 +33,14 @@ aiohttp>=3.8.0
 # Notes:
 # ------
 # 1. OpenCV Version Compatibility:
-#    - OpenCV 4.7+ uses cv2.aruco.ArucoDetector() class (new API)
-#    - OpenCV < 4.7 uses cv2.aruco.detectMarkers() function (legacy API)
-#    - This code automatically detects and uses the appropriate method
-#    - Raspberry Pi OS typically ships with OpenCV < 4.7
+#    - OpenCV 4.7+ uses cv2.aruco.ArucoDetector() class (new detection API)
+#    - OpenCV < 4.7 uses cv2.aruco.detectMarkers() function (legacy detection API)
+#    - OpenCV 4.7+ uses cv2.aruco.generateImageMarker() function (new generation API)
+#    - OpenCV < 4.7 uses cv2.aruco.drawMarker() function (legacy generation API)
+#    - OpenCV 4.6+ uses cv2.aruco.DetectorParameters() constructor (new parameters API)
+#    - OpenCV < 4.6 uses cv2.aruco.DetectorParameters_create() function (legacy parameters API)
+#    - This code automatically detects and uses the appropriate methods for all three APIs
+#    - Raspberry Pi OS typically ships with OpenCV 4.5.x which uses all legacy APIs
 #
 # 2. On Raspberry Pi OS, you may prefer to use system packages:
 #    sudo apt install python3-opencv python3-numpy python3-pil

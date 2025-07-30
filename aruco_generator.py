@@ -447,7 +447,14 @@ import numpy as np
 
 # Initialize detector with backward compatibility
 dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-parameters = cv2.aruco.DetectorParameters()
+
+# Create detector parameters with version compatibility
+try:
+    parameters = cv2.aruco.DetectorParameters()
+except AttributeError:
+    # Older OpenCV versions use DetectorParameters_create()
+    parameters = cv2.aruco.DetectorParameters_create()
+
 
 # Check OpenCV version for detector initialization
 opencv_version = cv2.__version__
