@@ -1,0 +1,38 @@
+# Mock FoundryVTT Server Dependencies
+# Advanced async server using aiohttp and websockets
+#
+# RECOMMENDED: Use a virtual environment to avoid conflicts
+# 
+# Setup virtual environment:
+#   python3 -m venv foundry-server-env
+#   source foundry-server-env/bin/activate  # Linux/Mac
+#   foundry-server-env\Scripts\activate     # Windows
+#
+# Install dependencies:
+#   pip install -r requirements.txt
+#
+# Run the server (while virtual environment is active):
+#   python3 mock_foundry_server.py --verbose
+#
+# Deactivate when done:
+#   deactivate
+
+# Core HTTP server framework
+aiohttp>=3.8.0
+
+# WebSocket server support
+websockets>=10.0
+
+# Optional: Enhanced async HTTP client capabilities
+aiohttp[speedups]>=3.8.0
+
+# Note: All other dependencies are part of Python standard library:
+# - asyncio (Python 3.7+)
+# - json
+# - logging  
+# - time
+# - uuid
+# - datetime
+# - pathlib
+# - typing
+# - argparse
