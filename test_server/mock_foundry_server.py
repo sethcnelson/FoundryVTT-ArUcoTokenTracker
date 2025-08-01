@@ -27,6 +27,7 @@ import json
 import logging
 import time
 import uuid
+import socket
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -119,9 +120,10 @@ class MockScene:
 class MockFoundryServer:
     """Mock Foundry VTT server for testing ArUco tracker."""
     
-    def __init__(self, http_port: int = 30000, ws_port: int = 30001):
+    def __init__(self, ip_addr, http_port: int = 30000, ws_port: int = 30001):
         self.http_port = http_port
         self.ws_port = ws_port
+        self.ip_addr = ip_addr
         
         # Create default scene
         self.default_scene_id = "test-scene-123"
@@ -804,10 +806,26 @@ class MockFoundryServer:
         finally:
             await runner.cleanup()
 
+import socket
+
+def get_local_ip_address():
+    """
+    Retrieves the local IP address of the machine.
+    """
+    try:
+        # Get the hostname of the local machine
+        hostname = socket.gethostname()
+        # Resolve the hostname to its corresponding IP address
+        local_ip = socket.gethostbyname(hostname)
+        return local_ip
+    except socket.error as e:
+        return "localhost"
+
 
 async def main():
     """Main function."""
     parser = argparse.ArgumentParser(description="Mock Foundry VTT Server for ArUco Testing")
+    parser.add_argument("--ip_addr", type=str, default="", help="IP address for HTTP and WebSocket server (default: current IP address)")
     parser.add_argument("--port", type=int, default=30000, help="HTTP server port (default: 30000)")
     parser.add_argument("--ws-port", type=int, default=30001, help="WebSocket server port (default: 30001)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
@@ -817,8 +835,11 @@ async def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
+    if not args.ip_addr:
+        args.ip_addr = get_local_ip_address()
+    
     # Create and run server
-    server = MockFoundryServer(http_port=args.port, ws_port=args.ws_port)
+    server = MockFoundryServer(ip_addr=args.ip_addr, http_port=args.port, ws_port=args.ws_port)
     await server.run()
 
 
