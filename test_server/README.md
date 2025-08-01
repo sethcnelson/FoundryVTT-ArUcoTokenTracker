@@ -49,13 +49,41 @@ This professional-grade mock server provides comprehensive FoundryVTT simulation
 
 ### Installation
 
+#### Option 1: Automated Setup (Recommended)
+
+**Linux/Mac/Raspberry Pi:**
+```bash
+# Make setup script executable and run
+chmod +x setup.sh
+./setup.sh
+
+# Follow the on-screen instructions
+```
+
+**Windows:**
+```batch
+# Double-click setup.bat or run from command prompt
+setup.bat
+
+# Follow the on-screen instructions
+```
+
+The setup scripts will:
+- ✅ Check Python 3.7+ installation
+- ✅ Create virtual environment automatically  
+- ✅ Install all dependencies
+- ✅ Provide clear next-step instructions
+- ✅ Handle errors gracefully with helpful messages
+
+#### Option 2: Manual Setup
+
 1. **Clone or download the files:**
    ```bash
    # Create project directory
    mkdir mock-foundry-server
    cd mock-foundry-server
    
-   # Copy mock_foundry_server.py and requirements.txt here
+   # Copy mock_foundry_server.py, requirements.txt, and setup scripts here
    ```
 
 2. **Set up virtual environment (RECOMMENDED):**
@@ -97,11 +125,11 @@ This professional-grade mock server provides comprehensive FoundryVTT simulation
    - Or: `http://your-pi-ip:30000` (network access)
    - WebSocket: `ws://your-pi-ip:30001`
 
-#### **Complete example session:**
+6. **Complete example session:**
    ```bash
    # Setup (one time)
    mkdir mock-foundry-server && cd mock-foundry-server
-   # Copy files: mock_foundry_server.py, requirements.txt
+   # Copy files: mock_foundry_server.py, requirements.txt, setup.sh/setup.bat
    python3 -m venv foundry-server-env
    source foundry-server-env/bin/activate
    pip install -r requirements.txt
@@ -118,6 +146,15 @@ This professional-grade mock server provides comprehensive FoundryVTT simulation
 ### Command Line Options
 
 ```bash
+# Setup Scripts
+./setup.sh [OPTIONS]        # Linux/Mac/Pi automated setup
+setup.bat                   # Windows automated setup
+
+# Setup Script Options (Linux/Mac)
+  -h, --help     Show help message
+  -c, --clean    Remove existing virtual environment before setup
+
+# Server Options  
 python3 mock_foundry_server.py [OPTIONS]
 
 Options:
