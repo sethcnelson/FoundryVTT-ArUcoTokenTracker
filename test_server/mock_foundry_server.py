@@ -808,18 +808,25 @@ class MockFoundryServer:
 
 import socket
 
-def get_local_ip_address():
-    """
-    Retrieves the local IP address of the machine.
-    """
-    try:
-        # Get the hostname of the local machine
-        hostname = socket.gethostname()
-        # Resolve the hostname to its corresponding IP address
-        local_ip = socket.gethostbyname(hostname)
-        return local_ip
-    except socket.error as e:
-        return "localhost"
+def ip_addr(hostIP=None):
+    if hostIP is None or hostIP == 'auto':
+        hostIP = 'ip'
+
+    if hostIP == 'dns':
+        hostIP = socket.getfqdn()
+    elif hostIP == 'ip':
+        from socket import gaierror
+        try:
+            hostIP = socket.gethostbyname(socket.getfqdn())
+        except gaierror:
+            # logger.warn('gethostbyname(socket.getfqdn()) failed... trying on hostname()')
+            hostIP = socket.gethostbyname(socket.gethostname())
+        if hostIP.startswith("127."):
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # doesn't have to be reachable
+            s.connect(('10.255.255.255', 1))
+            hostIP = s.getsockname()[0]
+    return hostIP
 
 
 async def main():
