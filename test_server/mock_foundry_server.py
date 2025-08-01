@@ -843,7 +843,7 @@ async def main():
         logging.getLogger().setLevel(logging.DEBUG)
     
     if not args.ip_addr:
-        args.ip_addr = get_local_ip_address()
+        args.ip_addr = ip_addr()
     
     # Create and run server
     server = MockFoundryServer(ip_addr=args.ip_addr, http_port=args.port, ws_port=args.ws_port)
