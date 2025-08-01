@@ -57,14 +57,7 @@ class ArucoPreviewApp:
         self.running = False
         
         # Initialize ArUco detector with backward compatibility
-        self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-
-        # Create detector parameters with version compatibility
-        try:
-            self.parameters = cv2.aruco.DetectorParameters()
-        except AttributeError:
-            # Older OpenCV versions use DetectorParameters_create()
-            self.parameters = cv2.aruco.DetectorParameters_create()
+        self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)  
                 
         # Check OpenCV version for detector initialization
         self.opencv_version = cv2.__version__
@@ -74,16 +67,21 @@ class ArucoPreviewApp:
         # Use new ArucoDetector class if available (OpenCV 4.7+)
         if opencv_major > 4 or (opencv_major == 4 and opencv_minor >= 7):
             try:
+                self.parameters = cv2.aruco.DetectorParameters()
                 self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
                 self.use_new_api = True
                 print(f"Using new ArUco API (OpenCV {self.opencv_version})")
             except AttributeError:
                 self.detector = None
                 self.use_new_api = False
+                # Older OpenCV versions use DetectorParameters_create()
+                self.parameters = cv2.aruco.DetectorParameters_create()
                 print(f"Falling back to legacy ArUco API (OpenCV {self.opencv_version})")
         else:
             self.detector = None
             self.use_new_api = False
+            # Older OpenCV versions use DetectorParameters_create()
+            self.parameters = cv2.aruco.DetectorParameters_create()
             print(f"Using legacy ArUco API (OpenCV {self.opencv_version})")
         
         # Detection toggles

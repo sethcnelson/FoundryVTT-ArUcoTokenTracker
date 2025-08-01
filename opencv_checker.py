@@ -110,7 +110,7 @@ def check_opencv():
         
         if api_version == "legacy":
             corners, ids, rejected = cv2.aruco.detectMarkers(
-                test_image, dictionary, parameters)
+                image=test_image, dictionary=dictionary, parameters=parameters)
             print(f"✓ Legacy API detection test successful")
             
     except Exception as e:
