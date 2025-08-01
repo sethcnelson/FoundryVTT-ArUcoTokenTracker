@@ -527,7 +527,7 @@ class MockFoundryServer:
                 <li><strong>GET</strong> /api/scenes/{scene_id}/tokens - Get scene tokens</li>
                 <li><strong>POST</strong> /api/scenes/{scene_id}/tokens - Create token</li>
                 <li><strong>PATCH</strong> /api/tokens/{token_id} - Update token</li>
-                <li><strong>WebSocket</strong> ws://localhost:{self.ws_port} - Real-time updates</li>
+                <li><strong>WebSocket</strong> ws://{self.ip_addr}:{self.ws_port} - Real-time updates</li>
             </ul>
         </div>
     </div>
@@ -539,7 +539,7 @@ class MockFoundryServer:
         
         function connectWebSocket() {{
             try {{
-                ws = new WebSocket('ws://localhost:{self.ws_port}');
+                ws = new WebSocket('ws://{self.ip_addr}:{self.ws_port}');
                 
                 ws.onopen = function() {{
                     document.getElementById('connectionStatus').textContent = 'WebSocket: Connected';
@@ -773,7 +773,7 @@ class MockFoundryServer:
                 logger.info(f"WebSocket: Client disconnected")
         
         # Start WebSocket server
-        start_server = websockets.serve(websocket_handler, "0.0.0.0", self.ws_port)
+        start_server = websockets.serve(websocket_handler, {self.ip_addr}, self.ws_port)
         await start_server
         logger.info(f"WebSocket server started on port {self.ws_port}")
     
@@ -788,12 +788,12 @@ class MockFoundryServer:
         # Start HTTP server
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', self.http_port)
+        site = web.TCPSite(runner, {self.ip_addr}, self.http_port)
         await site.start()
         
         logger.info(f"Mock Foundry VTT Server started!")
-        logger.info(f"HTTP Server: http://0.0.0.0:{self.http_port}")
-        logger.info(f"WebSocket Server: ws://0.0.0.0:{self.ws_port}")
+        logger.info(f"HTTP Server: http://{self.ip_addr}:{self.http_port}")
+        logger.info(f"WebSocket Server: ws://{self.ip_addr}:{self.ws_port}")
         logger.info(f"Default Scene ID: {self.default_scene_id}")
         logger.info("Press Ctrl+C to stop")
         
