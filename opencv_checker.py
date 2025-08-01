@@ -46,7 +46,7 @@ def check_opencv():
         # Test dictionary access
         dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         print(f"✓ ArUco module available")
-        print(f"  Dictionary DICT_6X6_250: {len(dictionary)} markers")
+        print(f"  Dictionary DICT_6X6_250: {dictionary.markerSize} markers")
         
     except AttributeError as e:
         print(f"✗ ArUco module not available: {e}")
@@ -58,28 +58,15 @@ def check_opencv():
         print(f"✗ Error accessing ArUco: {e}")
         return False
     
-    # Test detector parameters
-    try:
-        # Try newer parameter creation method first
-        try:
-            parameters = cv2.aruco.DetectorParameters()
-            print(f"✓ ArUco DetectorParameters() available (newer API)")
-            param_api = "new"
-        except AttributeError:
-            # Fall back to older method
-            parameters = cv2.aruco.DetectorParameters_create()
-            print(f"✓ ArUco DetectorParameters_create() available (older API)")
-            param_api = "old"
-    except Exception as e:
-        print(f"✗ Error creating DetectorParameters: {e}")
-        return False
-    
     # Determine API version
     print("\nArUco API Compatibility:")
-    
+    api_version = "legacy"
+
     # Check for new API (OpenCV 4.7+)
     if opencv_major > 4 or (opencv_major == 4 and opencv_minor >= 7):
         try:
+            parameters = cv2.aruco.DetectorParameters()
+            print(f"✓ ArUco DetectorParameters() available (newer API)")
             detector = cv2.aruco.ArucoDetector(dictionary, parameters)
             print(f"✓ New ArUco API available (OpenCV 4.7+)")
             print(f"  Using: cv2.aruco.ArucoDetector() class")
@@ -87,12 +74,18 @@ def check_opencv():
         except AttributeError:
             print(f"⚠ New API expected but not available")
             print(f"  Falling back to legacy API")
+            parameters = cv2.aruco.DetectorParameters_create()
+            print(f"✓ ArUco DetectorParameters_create() available (older API)")
             api_version = "legacy"
         except Exception as e:
             print(f"✗ Error with new API: {e}")
+            parameters = cv2.aruco.DetectorParameters_create()
+            print(f"✓ ArUco DetectorParameters_create() available (older API)")
             api_version = "legacy"
     else:
         print(f"✓ Legacy ArUco API (OpenCV < 4.7)")
+        parameters = cv2.aruco.DetectorParameters_create()
+        print(f"✓ ArUco DetectorParameters_create() available (older API)")
         print(f"  Using: cv2.aruco.detectMarkers() function")
         api_version = "legacy"
     
@@ -117,7 +110,7 @@ def check_opencv():
         
         if api_version == "legacy":
             corners, ids, rejected = cv2.aruco.detectMarkers(
-                test_image, dictionary, parameters=parameters)
+                test_image, dictionary, parameters)
             print(f"✓ Legacy API detection test successful")
             
     except Exception as e:
@@ -171,7 +164,6 @@ def check_opencv():
     print(f"ArUco Support: Available")
     print(f"Detection API: {api_version.title()}")
     print(f"Generation API: {generation_api.title()}")
-    print(f"Parameters API: {param_api.title()}")
     print(f"Compatibility: ✓ Compatible with ArUco Token Tracker")
     
     # Recommendations
@@ -180,10 +172,7 @@ def check_opencv():
         print("• Your OpenCV version uses the legacy ArUco APIs")
         print("• Detection: cv2.aruco.detectMarkers() function")
         print("• Generation: cv2.aruco.drawMarker() function")
-        if param_api == "old":
-            print("• Parameters: cv2.aruco.DetectorParameters_create() function")
-        else:
-            print("• Parameters: cv2.aruco.DetectorParameters() function")
+        print("• Parameters: cv2.aruco.DetectorParameters_create() function")
         print("• This is common on Raspberry Pi OS and works perfectly")
         print("• The tracker automatically detects and uses the correct APIs")
     elif opencv_major >= 4 and opencv_minor >= 7:
